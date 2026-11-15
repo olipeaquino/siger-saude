@@ -114,14 +114,6 @@ h2 {
   margin-top: 18px;
 }
 
-.auth-aviso {
-  margin-top: 28px;
-  padding-top: 16px;
-  border-top: 1px solid var(--borda);
-  font-size: 0.8rem;
-  color: var(--texto-suave);
-}
-
 .campo {
   margin-bottom: 16px;
 }

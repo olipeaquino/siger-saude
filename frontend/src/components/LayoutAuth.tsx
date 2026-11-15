@@ -19,7 +19,6 @@ export default function LayoutAuth({ titulo, subtitulo, children }: Props) {
           <h1>{titulo}</h1>
           <p className="auth-subtitulo">{subtitulo}</p>
           {children}
-          <p className="auth-aviso">Use apenas dados fictícios.</p>
         </section>
       </div>
     </main>

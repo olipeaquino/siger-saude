@@ -5,8 +5,8 @@ Módulo de autenticação do SIGER, desenvolvido na disciplina Big Data em Pytho
 
 **Aplicação:** https://siger-saude.pages.dev
 
-> Use apenas dados fictícios. Nenhuma informação real de pacientes, servidores ou planilhas
-> institucionais deve ser cadastrada ou versionada neste repositório.
+> Nenhuma informação real de pacientes, servidores ou planilhas institucionais deve ser
+> versionada neste repositório.
 
 ## Sumário
 
