@@ -8,6 +8,14 @@ preview_urls = false
 [observability]
 enabled = true
 
+[[ratelimits]]
+name = "LIMITE_CADASTRO"
+namespace_id = "74125"
+
+  [ratelimits.simple]
+  limit = 10
+  period = 60
+
 [[d1_databases]]
 binding = "DB"
 database_name = "siger-saude"

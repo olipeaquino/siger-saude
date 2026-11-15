@@ -9,9 +9,14 @@ CREATE TABLE IF NOT EXISTS usuarios (
   senha_iteracoes INTEGER NOT NULL,
   is_admin INTEGER NOT NULL DEFAULT 0,
   deve_trocar_senha INTEGER NOT NULL DEFAULT 0,
-  tentativas INTEGER NOT NULL DEFAULT 0,
-  bloqueado_ate TEXT NOT NULL DEFAULT '',
   criado_em TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS tentativas_login (
+  chave TEXT PRIMARY KEY,
+  tentativas INTEGER NOT NULL,
+  bloqueado_ate TEXT NOT NULL DEFAULT '',
+  atualizado_em TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS sessoes (

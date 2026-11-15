@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { ADMIN, cadastrarPelaApi, entrar, gerarCpf, novoUsuario, sair, sql } from './apoio'
+import { ADMIN, cadastrarPelaApi, chaveTentativa, entrar, gerarCpf, novoUsuario, sair, sql } from './apoio'
 
 const INVALIDAS = 'CPF ou senha inválidos.'
 const BLOQUEADO = 'Muitas tentativas. Tente novamente em alguns minutos.'
@@ -103,14 +103,30 @@ test('AC-5 AC-6 mensagem idêntica, bloqueio na terceira tentativa e liberação
   await entrar(page, usuario.cpf, usuario.senha)
   await expect(page.getByText(BLOQUEADO)).toBeVisible()
 
-  const [bloqueio] = sql<{ bloqueado_ate: string }>(`SELECT bloqueado_ate FROM usuarios WHERE cpf = '${usuario.cpf}'`)
+  const chave = chaveTentativa(usuario.cpf)
+  const [bloqueio] = sql<{ bloqueado_ate: string }>(
+    `SELECT bloqueado_ate FROM tentativas_login WHERE chave = '${chave}'`,
+  )
   const minutos = (new Date(bloqueio.bloqueado_ate).getTime() - Date.now()) / 60000
   expect(minutos).toBeGreaterThan(3)
   expect(minutos).toBeLessThanOrEqual(4)
 
-  sql(`UPDATE usuarios SET bloqueado_ate = '${PASSADO}' WHERE cpf = '${usuario.cpf}'`)
+  sql(`UPDATE tentativas_login SET bloqueado_ate = '${PASSADO}' WHERE chave = '${chave}'`)
   await entrar(page, usuario.cpf, usuario.senha)
   await expect(page.getByRole('heading', { name: 'Login realizado!' })).toBeVisible()
+  expect(sql(`SELECT chave FROM tentativas_login WHERE chave = '${chave}'`)).toHaveLength(0)
+})
+
+test('AC-5 AC-6 CPF inexistente é bloqueado do mesmo jeito que uma conta real', async ({ page }) => {
+  const cpf = gerarCpf()
+  for (let tentativa = 1; tentativa <= 3; tentativa++) {
+    await entrar(page, cpf, 'errada1')
+    await expect(page.getByText(INVALIDAS)).toBeVisible()
+  }
+  await entrar(page, cpf, 'errada1')
+  await expect(page.getByText(BLOQUEADO)).toBeVisible()
+  const gravado = sql<{ chave: string }>('SELECT chave FROM tentativas_login')
+  expect(gravado.map((linha) => linha.chave)).not.toContain(cpf)
 })
 
 test('AC-8 sessão expirada volta ao login', async ({ page, request, baseURL }) => {
@@ -218,4 +234,15 @@ test('AC-15 AC-16 auditoria registrada e administrador inicial sem senha em text
   expect(admin).toMatchObject({ is_admin: 1, nome: ADMIN.ADMIN_NOME })
   expect(admin.senha_hash).toMatch(/^[0-9a-f]{64}$/)
   expect(admin.senha_hash).not.toContain(ADMIN.ADMIN_SENHA)
+})
+
+test('AC-17 cadastros em excesso do mesmo endereço são recusados', async ({ request, baseURL }) => {
+  const respostas = await Promise.all(
+    Array.from({ length: 15 }, () =>
+      request.post('/api/cadastro', { data: {}, headers: { Origin: baseURL! } }),
+    ),
+  )
+  const codigos = respostas.map((resposta) => resposta.status())
+  expect(codigos).toContain(429)
+  expect(codigos.every((codigo) => codigo === 400 || codigo === 429)).toBe(true)
 })

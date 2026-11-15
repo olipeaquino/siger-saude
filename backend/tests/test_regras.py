@@ -47,8 +47,8 @@ class ApoioTest(unittest.TestCase):
             self.assertIsNone(validacao.erro_senha(regras.senha_temporaria()))
 
     def test_ac9_token_guardado_como_hash(self):
-        self.assertEqual(len(regras.hash_token("abc")), 64)
-        self.assertNotEqual(regras.hash_token("abc"), "abc")
+        self.assertEqual(len(regras.resumo("abc")), 64)
+        self.assertNotEqual(regras.resumo("abc"), "abc")
 
 
 if __name__ == "__main__":

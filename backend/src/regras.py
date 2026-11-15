@@ -6,6 +6,7 @@ from datetime import datetime, timedelta, timezone
 MAX_TENTATIVAS = 3
 BLOQUEIO = timedelta(minutes=4)
 SESSAO = timedelta(hours=3)
+RETENCAO_TENTATIVAS = timedelta(days=1)
 
 
 def agora():
@@ -20,8 +21,8 @@ def mascarar_cpf(cpf):
     return f"***.{cpf[3:6]}.{cpf[6:9]}-**"
 
 
-def hash_token(token):
-    return hashlib.sha256(token.encode()).hexdigest()
+def resumo(texto):
+    return hashlib.sha256(texto.encode()).hexdigest()
 
 
 def senha_temporaria():

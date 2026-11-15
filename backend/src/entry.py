@@ -3,6 +3,8 @@ import re
 import secrets
 from urllib.parse import urlparse
 
+from js import Object
+from pyodide.ffi import to_js
 from workers import Response, WorkerEntrypoint
 
 import regras
@@ -78,6 +80,7 @@ class Default(WorkerEntrypoint):
         self.repo = Repositorio(self.env.DB)
         self.momento = regras.agora()
         self.token = ler_token(request)
+        self.ip = str(request.headers.get("cf-connecting-ip") or "desconhecido")
 
         if metodo == "POST":
             origem = str(request.headers.get("origin") or "")
@@ -123,7 +126,7 @@ class Default(WorkerEntrypoint):
         usuario = None
         if self.token:
             usuario = await self.repo.usuario_por_sessao(
-                regras.hash_token(self.token), regras.iso(self.momento)
+                regras.resumo(self.token), regras.iso(self.momento)
             )
         if usuario is None:
             raise Erro(401, "Sessão inválida ou expirada.")
@@ -135,6 +138,11 @@ class Default(WorkerEntrypoint):
         await self.repo.auditar(evento, regras.iso(self.momento), usuario_id)
 
     async def cadastro(self, dados):
+        limite = await self.env.LIMITE_CADASTRO.limit(
+            to_js({"key": self.ip}, dict_converter=Object.fromEntries)
+        )
+        if not limite.success:
+            raise Erro(429, "Muitas solicitações. Aguarde um minuto e tente novamente.")
         limpos, erros = validacao.validar_cadastro(dados)
         if erros:
             raise Erro(400, "Verifique os campos informados.", erros)
@@ -153,33 +161,40 @@ class Default(WorkerEntrypoint):
     async def login(self, dados):
         cpf = validacao.limpar_cpf(dados.get("cpf"))
         senha = dados.get("senha")
-        usuario = await self.repo.usuario_por_cpf(cpf) if cpf else None
-        if usuario is None or not isinstance(senha, str):
-            await senhas.derivar(str(senha), SALT_FALSO, senhas.ITERACOES)
+        if cpf is None or not isinstance(senha, str):
             await self.auditar("login_recusado")
             raise Erro(401, CREDENCIAIS_INVALIDAS)
+        usuario = await self.repo.usuario_por_cpf(cpf)
+        usuario_id = usuario["id"] if usuario else 0
+        chave = regras.resumo(cpf)
         limite = regras.MAX_TENTATIVAS
+        agora = regras.iso(self.momento)
         bloqueio = regras.iso(self.momento + regras.BLOQUEIO)
-        tentativas = await self.repo.reservar_tentativa(
-            usuario["id"], limite, regras.iso(self.momento)
-        )
+        tentativas = await self.repo.reservar_tentativa(chave, limite, agora)
         if tentativas is None:
-            await self.repo.bloquear(usuario["id"], limite, bloqueio)
-            await self.auditar("login_bloqueado", usuario["id"])
+            await self.repo.bloquear(chave, limite, bloqueio)
+            await self.auditar("login_bloqueado", usuario_id)
             raise Erro(429, "Muitas tentativas. Tente novamente em alguns minutos.")
-        correta = await senhas.conferir(
-            senha, usuario["senha_hash"], usuario["senha_salt"], usuario["senha_iteracoes"]
-        )
+        if usuario:
+            correta = await senhas.conferir(
+                senha, usuario["senha_hash"], usuario["senha_salt"], usuario["senha_iteracoes"]
+            )
+        else:
+            await senhas.derivar(senha, SALT_FALSO, senhas.ITERACOES)
+            correta = False
         if not correta:
             if tentativas >= limite:
-                await self.repo.bloquear(usuario["id"], limite, bloqueio)
-                await self.auditar("bloqueio", usuario["id"])
-            await self.auditar("login_recusado", usuario["id"])
+                await self.repo.bloquear(chave, limite, bloqueio)
+                await self.repo.limpar_tentativas(
+                    regras.iso(self.momento - regras.RETENCAO_TENTATIVAS)
+                )
+                await self.auditar("bloqueio", usuario_id)
+            await self.auditar("login_recusado", usuario_id)
             raise Erro(401, CREDENCIAIS_INVALIDAS)
-        await self.repo.liberar(usuario["id"])
+        await self.repo.liberar(chave)
         token = secrets.token_urlsafe(32)
         await self.repo.criar_sessao(
-            regras.hash_token(token), usuario["id"], regras.iso(self.momento + regras.SESSAO)
+            regras.resumo(token), usuario["id"], regras.iso(self.momento + regras.SESSAO)
         )
         await self.auditar("login_ok", usuario["id"])
         duracao = int(regras.SESSAO.total_seconds())
@@ -187,7 +202,7 @@ class Default(WorkerEntrypoint):
 
     async def logout(self, dados):
         usuario = await self.autenticado()
-        await self.repo.apagar_sessao(regras.hash_token(self.token))
+        await self.repo.apagar_sessao(regras.resumo(self.token))
         await self.auditar("logout", usuario["id"])
         return responder({"mensagem": "Sessão encerrada."}, cookie=cookie_sessao("", 0))
 
@@ -213,7 +228,7 @@ class Default(WorkerEntrypoint):
             )
         senha_hash, salt, iteracoes = await senhas.gerar(nova)
         await self.repo.definir_senha(usuario["id"], senha_hash, salt, iteracoes, 0)
-        await self.repo.apagar_sessoes(usuario["id"], regras.hash_token(self.token))
+        await self.repo.apagar_sessoes(usuario["id"], regras.resumo(self.token))
         await self.auditar("senha_alterada", usuario["id"])
         return responder({"mensagem": "Senha alterada com sucesso."})
 
@@ -243,7 +258,8 @@ class Default(WorkerEntrypoint):
         temporaria = regras.senha_temporaria()
         senha_hash, salt, iteracoes = await senhas.gerar(temporaria)
         await self.repo.definir_senha(usuario_id, senha_hash, salt, iteracoes, 1)
-        await self.repo.liberar(usuario_id)
+        usuario = await self.repo.usuario_por_id(usuario_id)
+        await self.repo.liberar(regras.resumo(usuario["cpf"]))
         await self.repo.apagar_sessoes(usuario_id)
         await self.auditar("senha_redefinida", usuario_id)
         return responder({"senha_temporaria": temporaria})

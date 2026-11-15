@@ -1,4 +1,5 @@
 import { execSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 import { expect, type APIRequestContext, type Page } from '@playwright/test'
 
@@ -19,6 +20,10 @@ export function sql<T = Record<string, unknown>>(comando: string): T[] {
     stdio: ['ignore', 'pipe', 'ignore'],
   })
   return JSON.parse(saida.slice(saida.indexOf('[')))[0].results
+}
+
+export function chaveTentativa(cpf: string) {
+  return createHash('sha256').update(cpf).digest('hex')
 }
 
 export function gerarCpf() {

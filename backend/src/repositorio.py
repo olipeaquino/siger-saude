@@ -37,29 +37,34 @@ class Repositorio:
             token_hash, momento,
         )
 
-    async def reservar_tentativa(self, usuario_id, maximo, momento):
+    async def usuario_por_id(self, usuario_id):
+        return await self._um("SELECT * FROM usuarios WHERE id = ?", usuario_id)
+
+    async def reservar_tentativa(self, chave, maximo, momento):
         linha = await self._um(
-            "UPDATE usuarios SET"
+            "INSERT INTO tentativas_login (chave, tentativas, atualizado_em) VALUES (?, 1, ?)"
+            " ON CONFLICT(chave) DO UPDATE SET"
             " tentativas = CASE WHEN bloqueado_ate = '' THEN tentativas + 1 ELSE 1 END,"
-            " bloqueado_ate = ''"
-            " WHERE id = ? AND ((bloqueado_ate = '' AND tentativas < ?)"
-            " OR (bloqueado_ate <> '' AND bloqueado_ate <= ?))"
+            " bloqueado_ate = '', atualizado_em = excluded.atualizado_em"
+            " WHERE (bloqueado_ate = '' AND tentativas < ?)"
+            " OR (bloqueado_ate <> '' AND bloqueado_ate <= ?)"
             " RETURNING tentativas",
-            usuario_id, maximo, momento,
+            chave, momento, maximo, momento,
         )
         return linha["tentativas"] if linha else None
 
-    async def bloquear(self, usuario_id, maximo, bloqueado_ate):
+    async def bloquear(self, chave, maximo, bloqueado_ate):
         await self._executar(
-            "UPDATE usuarios SET bloqueado_ate = ?"
-            " WHERE id = ? AND bloqueado_ate = '' AND tentativas >= ?",
-            bloqueado_ate, usuario_id, maximo,
+            "UPDATE tentativas_login SET bloqueado_ate = ?"
+            " WHERE chave = ? AND bloqueado_ate = '' AND tentativas >= ?",
+            bloqueado_ate, chave, maximo,
         )
 
-    async def liberar(self, usuario_id):
-        await self._executar(
-            "UPDATE usuarios SET tentativas = 0, bloqueado_ate = '' WHERE id = ?", usuario_id
-        )
+    async def liberar(self, chave):
+        await self._executar("DELETE FROM tentativas_login WHERE chave = ?", chave)
+
+    async def limpar_tentativas(self, antes_de):
+        await self._executar("DELETE FROM tentativas_login WHERE atualizado_em < ?", antes_de)
 
     async def definir_senha(self, usuario_id, senha_hash, salt, iteracoes, deve_trocar):
         await self._executar(
