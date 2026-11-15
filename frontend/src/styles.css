@@ -283,7 +283,7 @@ h2 {
   opacity: 0.85;
 }
 
-.inicio-cartao {
+.cartao {
   width: calc(100% - 32px);
   max-width: 760px;
   margin: 0 auto 20px;
@@ -293,32 +293,32 @@ h2 {
   box-shadow: 0 8px 28px rgba(20, 42, 68, 0.08);
 }
 
-.inicio-cartao > .texto-suave {
+.cartao > .texto-suave {
   margin: 8px 0 20px;
 }
 
-.inicio-boas-vindas {
+.boas-vindas {
   padding: 44px 28px;
   text-align: center;
 }
 
-.inicio-boas-vindas p {
+.boas-vindas p {
   max-width: 46ch;
   margin: 10px auto 0;
   color: var(--texto-suave);
 }
 
-.inicio-icone {
+.boas-vindas-icone {
   width: 72px;
   height: 72px;
   margin-bottom: 18px;
 }
 
-.inicio-icone circle {
+.boas-vindas-icone circle {
   fill: var(--sucesso-fundo);
 }
 
-.inicio-icone path {
+.boas-vindas-icone path {
   fill: none;
   stroke: var(--sucesso);
   stroke-width: 4;
@@ -326,7 +326,7 @@ h2 {
   stroke-linejoin: round;
 }
 
-.inicio-boas-vindas .selo {
+.boas-vindas .selo {
   display: inline-block;
   margin-top: 16px;
   padding: 4px 12px;
@@ -386,7 +386,7 @@ h2 {
     grid-template-columns: 1fr;
   }
 
-  .inicio-cartao {
+  .cartao {
     padding: 22px 18px;
   }
 }
@@ -394,5 +394,198 @@ h2 {
 @media (prefers-reduced-motion: reduce) {
   * {
     transition: none !important;
+  }
+}
+
+.cartao > h1 {
+  font-size: 1.3rem;
+  margin-bottom: 16px;
+}
+
+.boas-vindas > h1 {
+  font-size: 1.6rem;
+  margin-bottom: 0;
+}
+
+.abas {
+  display: flex;
+  gap: 4px;
+}
+
+.abas a {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 8px 14px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #fff;
+  text-decoration: none;
+  border-radius: 8px;
+  opacity: 0.8;
+}
+
+.abas a:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.abas a[aria-current='page'] {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.abas a:focus-visible {
+  outline: 3px solid rgba(255, 255, 255, 0.7);
+  outline-offset: 2px;
+}
+
+.abas svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.abas-contagem {
+  min-width: 20px;
+  padding: 0 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 20px;
+  text-align: center;
+  color: #fff;
+  background: var(--erro);
+  border-radius: 999px;
+}
+
+.conta {
+  width: calc(100% - 32px);
+  max-width: 760px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 2fr 3fr;
+  gap: 0 20px;
+  align-items: start;
+}
+
+.conta-titulo {
+  grid-column: 1 / -1;
+  font-size: 1.3rem;
+  margin-bottom: 16px;
+}
+
+.conta .cartao {
+  width: 100%;
+}
+
+.dados {
+  margin: 0;
+}
+
+.dados dt {
+  font-size: 0.8rem;
+  color: var(--texto-suave);
+}
+
+.dados dd {
+  margin: 0 0 12px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.so-celular {
+  display: none;
+}
+
+@media (max-width: 720px) {
+  .so-web {
+    display: none;
+  }
+
+  .so-celular {
+    display: block;
+  }
+
+  .inicio {
+    padding-bottom: calc(88px + env(safe-area-inset-bottom));
+  }
+
+  .inicio-topo {
+    margin-bottom: 20px;
+    padding: 14px 16px;
+  }
+
+  .inicio-area {
+    display: none;
+  }
+
+  .abas {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 10;
+    gap: 0;
+    padding-bottom: env(safe-area-inset-bottom);
+    background: var(--superficie);
+    border-top: 1px solid var(--borda);
+    box-shadow: 0 -4px 16px rgba(20, 42, 68, 0.08);
+  }
+
+  .abas a {
+    flex: 1;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+    min-height: 60px;
+    padding: 6px 4px;
+    font-size: 0.75rem;
+    color: var(--texto-suave);
+    border-radius: 0;
+    opacity: 1;
+  }
+
+  .abas a:hover {
+    background: none;
+  }
+
+  .abas a[aria-current='page'] {
+    color: var(--azul);
+    background: none;
+    box-shadow: inset 0 3px 0 var(--azul);
+  }
+
+  .abas a:focus-visible {
+    outline-color: rgba(47, 110, 165, 0.5);
+    outline-offset: -3px;
+  }
+
+  .abas-contagem {
+    position: absolute;
+    top: 6px;
+    left: calc(50% + 6px);
+  }
+
+  .conta {
+    grid-template-columns: 1fr;
+  }
+
+  .conta > .so-celular {
+    width: 100%;
+  }
+
+  .pedidos li {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .pedidos .botao {
+    width: 100%;
   }
 }

@@ -6,6 +6,8 @@ export const CPF_DIGITOS = '52998224725'
 export const USUARIO: Usuario = {
   nome: 'Maria',
   sobrenome: 'Silva',
+  cpf: '***.982.247-**',
+  email: 'maria@exemplo.com',
   is_admin: false,
   deve_trocar_senha: false,
 }

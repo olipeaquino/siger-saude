@@ -144,6 +144,9 @@ test('AC-8 sessão expirada volta ao login', async ({ page, request, baseURL }) 
 test('AC-10 alterar senha: a antiga deixa de entrar e a nova entra', async ({ page, request, baseURL }) => {
   const usuario = await cadastrarPelaApi(request, baseURL!)
   await entrar(page, usuario.cpf, usuario.senha)
+  await expect(page.getByText('Alterar senha')).toHaveCount(0)
+  await page.getByRole('link', { name: 'Conta' }).click()
+  await expect(page.getByRole('heading', { name: 'Minha conta' })).toBeVisible()
   const trocar = async (atual: string, nova: string) => {
     await page.getByLabel('Senha atual').fill(atual)
     await page.getByLabel('Nova senha', { exact: true }).fill(nova)
@@ -191,7 +194,9 @@ test('AC-11 AC-12 AC-13 AC-14 pedido de redefinição atendido pelo administrado
   await sair(page)
 
   await entrar(page, ADMIN.ADMIN_CPF, ADMIN.ADMIN_SENHA)
-  await expect(page.getByText('Pedidos de redefinição de senha')).toBeVisible()
+  await expect(page.getByLabel('1 pendentes')).toBeVisible()
+  await page.getByRole('link', { name: /Pedidos/ }).click()
+  await expect(page.getByRole('heading', { name: 'Pedidos de redefinição de senha' })).toBeVisible()
   const linha = page.getByRole('listitem').filter({ hasText: `${usuario.nome} ${usuario.sobrenome}` })
   await expect(linha).toContainText(`***.${usuario.cpf.slice(3, 6)}.${usuario.cpf.slice(6, 9)}-**`)
   await expect(linha).not.toContainText(usuario.cpf)
@@ -234,6 +239,48 @@ test('AC-15 AC-16 auditoria registrada e administrador inicial sem senha em text
   expect(admin).toMatchObject({ is_admin: 1, nome: ADMIN.ADMIN_NOME })
   expect(admin.senha_hash).toMatch(/^[0-9a-f]{64}$/)
   expect(admin.senha_hash).not.toContain(ADMIN.ADMIN_SENHA)
+})
+
+test('AC-18 AC-19 no celular as áreas ficam na barra inferior e nada estoura a largura', async ({
+  page,
+  request,
+  baseURL,
+}) => {
+  const semRolagemLateral = () =>
+    page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)
+  await page.setViewportSize({ width: 360, height: 740 })
+  const usuario = await cadastrarPelaApi(request, baseURL!)
+
+  await page.goto('/')
+  await expect(page.getByRole('heading', { name: 'Acesso institucional' })).toBeVisible()
+  expect(await semRolagemLateral()).toBe(true)
+  await page.getByRole('button', { name: 'Criar conta' }).click()
+  expect(await semRolagemLateral()).toBe(true)
+
+  await entrar(page, usuario.cpf, usuario.senha)
+  await expect(page.getByRole('heading', { name: 'Login realizado!' })).toBeVisible()
+  const barra = page.getByRole('navigation', { name: 'Áreas do sistema' })
+  const caixa = (await barra.boundingBox())!
+  expect(Math.round(caixa.y + caixa.height)).toBe(740)
+  expect(Math.round(caixa.width)).toBe(360)
+  await expect(barra.getByRole('link')).toHaveCount(2)
+  await expect(page.getByRole('button', { name: 'Sair' })).toHaveCount(0)
+  expect(await semRolagemLateral()).toBe(true)
+
+  await barra.getByRole('link', { name: 'Conta' }).click()
+  await expect(page).toHaveURL(/#conta$/)
+  await expect(page.getByRole('heading', { name: 'Minha conta' })).toBeVisible()
+  await expect(page.getByText(usuario.email)).toBeVisible()
+  expect(await semRolagemLateral()).toBe(true)
+  const campo = (await page.getByLabel('Senha atual').boundingBox())!
+  expect(campo.height).toBeGreaterThanOrEqual(44)
+
+  await page.goBack()
+  await expect(page.getByRole('heading', { name: 'Login realizado!' })).toBeVisible()
+  await page.goForward()
+  await page.getByRole('button', { name: 'Sair' }).click()
+  await expect(page.getByRole('heading', { name: 'Acesso institucional' })).toBeVisible()
+  await expect(page).not.toHaveURL(/#conta$/)
 })
 
 test('AC-17 cadastros em excesso do mesmo endereço são recusados', async ({ request, baseURL }) => {

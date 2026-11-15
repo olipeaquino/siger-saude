@@ -59,6 +59,8 @@ def publico(usuario):
     return {
         "nome": usuario["nome"],
         "sobrenome": usuario["sobrenome"],
+        "cpf": regras.mascarar_cpf(usuario["cpf"]),
+        "email": usuario["email"],
         "is_admin": bool(usuario["is_admin"]),
         "deve_trocar_senha": bool(usuario["deve_trocar_senha"]),
     }

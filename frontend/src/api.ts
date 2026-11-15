@@ -1,6 +1,8 @@
 export type Usuario = {
   nome: string
   sobrenome: string
+  cpf: string
+  email: string
   is_admin: boolean
   deve_trocar_senha: boolean
 }

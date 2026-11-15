@@ -1,19 +1,17 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { api, type Pedido } from '../api'
+
+type Props = {
+  pedidos: Pedido[]
+  erroCarga: string
+  aoAtender: (id: number) => void
+}
 
 type Gerada = { nome: string; senha: string }
 
-export default function Pedidos() {
-  const [pedidos, setPedidos] = useState<Pedido[]>([])
+export default function Pedidos({ pedidos, erroCarga, aoAtender }: Props) {
   const [gerada, setGerada] = useState<Gerada | null>(null)
   const [erro, setErro] = useState('')
-
-  useEffect(() => {
-    api.pedidos().then((resposta) => {
-      if (resposta.ok) setPedidos(resposta.dados.pedidos)
-      else setErro(resposta.mensagem)
-    })
-  }, [])
 
   async function redefinir(pedido: Pedido) {
     setErro('')
@@ -23,12 +21,14 @@ export default function Pedidos() {
       return
     }
     setGerada({ nome: `${pedido.nome} ${pedido.sobrenome}`, senha: resposta.dados.senha_temporaria })
-    setPedidos((atuais) => atuais.filter((item) => item.id !== pedido.id))
+    aoAtender(pedido.id)
   }
 
+  const mensagemErro = erro || erroCarga
+
   return (
-    <section className="inicio-cartao" aria-labelledby="titulo-pedidos">
-      <h2 id="titulo-pedidos">Pedidos de redefinição de senha</h2>
+    <section className="cartao">
+      <h1>Pedidos de redefinição de senha</h1>
       {gerada && (
         <div className="alerta alerta-sucesso" role="status">
           <p>
@@ -37,9 +37,9 @@ export default function Pedidos() {
           <p>Anote e repasse agora. Ela não será exibida novamente.</p>
         </div>
       )}
-      {erro && (
+      {mensagemErro && (
         <p className="alerta alerta-erro" role="alert">
-          {erro}
+          {mensagemErro}
         </p>
       )}
       {pedidos.length === 0 ? (
