@@ -161,12 +161,12 @@ class Default(WorkerEntrypoint):
         if not regras.vencido(usuario["bloqueado_ate"], self.momento):
             await self.auditar("login_bloqueado", usuario["id"])
             raise Erro(429, "Muitas tentativas. Tente novamente em alguns minutos.")
-        correta = await senhas.conferir(
+        tentativas = await self.repo.reservar_tentativa(usuario["id"], regras.MAX_TENTATIVAS)
+        correta = tentativas is not None and await senhas.conferir(
             senha, usuario["senha_hash"], usuario["senha_salt"], usuario["senha_iteracoes"]
         )
         if not correta:
-            tentativas = await self.repo.somar_tentativa(usuario["id"])
-            if tentativas >= regras.MAX_TENTATIVAS:
+            if tentativas is None or tentativas >= regras.MAX_TENTATIVAS:
                 await self.repo.definir_bloqueio(
                     usuario["id"], regras.iso(self.momento + regras.BLOQUEIO)
                 )

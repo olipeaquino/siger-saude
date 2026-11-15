@@ -37,12 +37,13 @@ class Repositorio:
             token_hash, momento,
         )
 
-    async def somar_tentativa(self, usuario_id):
+    async def reservar_tentativa(self, usuario_id, maximo):
         linha = await self._um(
-            "UPDATE usuarios SET tentativas = tentativas + 1 WHERE id = ? RETURNING tentativas",
-            usuario_id,
+            "UPDATE usuarios SET tentativas = tentativas + 1 WHERE id = ? AND tentativas < ?"
+            " RETURNING tentativas",
+            usuario_id, maximo,
         )
-        return linha["tentativas"]
+        return linha["tentativas"] if linha else None
 
     async def definir_bloqueio(self, usuario_id, bloqueado_ate):
         await self._executar(
