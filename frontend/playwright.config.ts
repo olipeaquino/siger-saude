@@ -18,7 +18,7 @@ export default defineConfig({
     },
     {
       command: 'npm run build && npm run preview',
-      url: 'http://localhost:8788',
+      url: 'http://localhost:8788/api/sessao',
       reuseExistingServer: true,
       timeout: 180_000,
     },

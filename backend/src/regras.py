@@ -16,10 +16,6 @@ def iso(momento):
     return momento.isoformat(timespec="seconds")
 
 
-def vencido(texto_iso, momento):
-    return not texto_iso or datetime.fromisoformat(texto_iso) <= momento
-
-
 def mascarar_cpf(cpf):
     return f"***.{cpf[3:6]}.{cpf[6:9]}-**"
 

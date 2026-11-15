@@ -158,22 +158,25 @@ class Default(WorkerEntrypoint):
             await senhas.derivar(str(senha), SALT_FALSO, senhas.ITERACOES)
             await self.auditar("login_recusado")
             raise Erro(401, CREDENCIAIS_INVALIDAS)
-        if not regras.vencido(usuario["bloqueado_ate"], self.momento):
+        limite = regras.MAX_TENTATIVAS
+        bloqueio = regras.iso(self.momento + regras.BLOQUEIO)
+        tentativas = await self.repo.reservar_tentativa(
+            usuario["id"], limite, regras.iso(self.momento)
+        )
+        if tentativas is None:
+            await self.repo.bloquear(usuario["id"], limite, bloqueio)
             await self.auditar("login_bloqueado", usuario["id"])
             raise Erro(429, "Muitas tentativas. Tente novamente em alguns minutos.")
-        tentativas = await self.repo.reservar_tentativa(usuario["id"], regras.MAX_TENTATIVAS)
-        correta = tentativas is not None and await senhas.conferir(
+        correta = await senhas.conferir(
             senha, usuario["senha_hash"], usuario["senha_salt"], usuario["senha_iteracoes"]
         )
         if not correta:
-            if tentativas is None or tentativas >= regras.MAX_TENTATIVAS:
-                await self.repo.definir_bloqueio(
-                    usuario["id"], regras.iso(self.momento + regras.BLOQUEIO)
-                )
+            if tentativas >= limite:
+                await self.repo.bloquear(usuario["id"], limite, bloqueio)
                 await self.auditar("bloqueio", usuario["id"])
             await self.auditar("login_recusado", usuario["id"])
             raise Erro(401, CREDENCIAIS_INVALIDAS)
-        await self.repo.definir_bloqueio(usuario["id"], "")
+        await self.repo.liberar(usuario["id"])
         token = secrets.token_urlsafe(32)
         await self.repo.criar_sessao(
             regras.hash_token(token), usuario["id"], regras.iso(self.momento + regras.SESSAO)
@@ -240,7 +243,7 @@ class Default(WorkerEntrypoint):
         temporaria = regras.senha_temporaria()
         senha_hash, salt, iteracoes = await senhas.gerar(temporaria)
         await self.repo.definir_senha(usuario_id, senha_hash, salt, iteracoes, 1)
-        await self.repo.definir_bloqueio(usuario_id, "")
+        await self.repo.liberar(usuario_id)
         await self.repo.apagar_sessoes(usuario_id)
         await self.auditar("senha_redefinida", usuario_id)
         return responder({"senha_temporaria": temporaria})

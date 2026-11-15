@@ -37,18 +37,28 @@ class Repositorio:
             token_hash, momento,
         )
 
-    async def reservar_tentativa(self, usuario_id, maximo):
+    async def reservar_tentativa(self, usuario_id, maximo, momento):
         linha = await self._um(
-            "UPDATE usuarios SET tentativas = tentativas + 1 WHERE id = ? AND tentativas < ?"
+            "UPDATE usuarios SET"
+            " tentativas = CASE WHEN bloqueado_ate = '' THEN tentativas + 1 ELSE 1 END,"
+            " bloqueado_ate = ''"
+            " WHERE id = ? AND ((bloqueado_ate = '' AND tentativas < ?)"
+            " OR (bloqueado_ate <> '' AND bloqueado_ate <= ?))"
             " RETURNING tentativas",
-            usuario_id, maximo,
+            usuario_id, maximo, momento,
         )
         return linha["tentativas"] if linha else None
 
-    async def definir_bloqueio(self, usuario_id, bloqueado_ate):
+    async def bloquear(self, usuario_id, maximo, bloqueado_ate):
         await self._executar(
-            "UPDATE usuarios SET tentativas = 0, bloqueado_ate = ? WHERE id = ?",
-            bloqueado_ate, usuario_id,
+            "UPDATE usuarios SET bloqueado_ate = ?"
+            " WHERE id = ? AND bloqueado_ate = '' AND tentativas >= ?",
+            bloqueado_ate, usuario_id, maximo,
+        )
+
+    async def liberar(self, usuario_id):
+        await self._executar(
+            "UPDATE usuarios SET tentativas = 0, bloqueado_ate = '' WHERE id = ?", usuario_id
         )
 
     async def definir_senha(self, usuario_id, senha_hash, salt, iteracoes, deve_trocar):

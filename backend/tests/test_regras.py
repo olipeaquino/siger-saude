@@ -24,19 +24,18 @@ class SenhaTest(unittest.IsolatedAsyncioTestCase):
 
 
 class PrazosTest(unittest.TestCase):
-    def test_ac6_bloqueio_dura_4_minutos(self):
-        inicio = regras.agora()
-        ate = regras.iso(inicio + regras.BLOQUEIO)
-        self.assertFalse(regras.vencido(ate, inicio + timedelta(minutes=3, seconds=59)))
-        self.assertTrue(regras.vencido(ate, inicio + timedelta(minutes=4)))
-        self.assertTrue(regras.vencido("", inicio))
+    def test_ac6_tres_tentativas_e_bloqueio_de_4_minutos(self):
         self.assertEqual(regras.MAX_TENTATIVAS, 3)
+        self.assertEqual(regras.BLOQUEIO, timedelta(minutes=4))
 
     def test_ac8_sessao_dura_3_horas(self):
+        self.assertEqual(regras.SESSAO, timedelta(hours=3))
+
+    def test_ac6_ac8_datas_gravadas_comparam_em_ordem_cronologica(self):
         inicio = regras.agora()
-        ate = regras.iso(inicio + regras.SESSAO)
-        self.assertFalse(regras.vencido(ate, inicio + timedelta(hours=2, minutes=59)))
-        self.assertTrue(regras.vencido(ate, inicio + timedelta(hours=3)))
+        for prazo in (timedelta(seconds=1), regras.BLOQUEIO, regras.SESSAO, timedelta(days=400)):
+            self.assertLess(regras.iso(inicio), regras.iso(inicio + prazo))
+        self.assertTrue(regras.iso(inicio).endswith("+00:00"))
 
 
 class ApoioTest(unittest.TestCase):
