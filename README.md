@@ -197,6 +197,14 @@ cd frontend
 npx playwright install chromium
 ```
 
+Para acompanhar os testes em uma janela do Chrome, em ritmo mais lento (PowerShell):
+
+```powershell
+cd frontend
+$env:PW_CHANNEL = 'chrome'; $env:PW_SLOWMO = '450'
+npx playwright test --headed
+```
+
 ## API
 
 Todas as rotas ficam em `/api` e respondem JSON. Rotas `POST` exigem o cabeçalho `Origin` igual

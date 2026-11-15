@@ -7,7 +7,12 @@ export default defineConfig({
   timeout: 90_000,
   reporter: 'list',
   globalSetup: './e2e/preparar.ts',
-  use: { baseURL: 'http://localhost:8788', browserName: 'chromium' },
+  use: {
+    baseURL: 'http://localhost:8788',
+    browserName: 'chromium',
+    channel: process.env.PW_CHANNEL,
+    launchOptions: { slowMo: Number(process.env.PW_SLOWMO) || 0 },
+  },
   webServer: [
     {
       command: 'npx wrangler dev --port 8787',
